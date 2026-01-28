@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+/* Enable class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #2463eb;
+  --color-background-light: #f6f6f8;
+  --color-background-dark: #111621;
+  --color-surface-light: #ffffff;
+  --color-surface-dark: #1f2937;
+  
+  --font-display: "Inter", sans-serif;
+}
+
+/* Custom Utilities */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-display);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
