@@ -2,12 +2,13 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
+// Support both custom env vars (DB_*) and Railway's auto-generated vars (MYSQL*)
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  database: process.env.DB_NAME || 'cashtrace',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
+  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+  port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cashtrace',
+  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
