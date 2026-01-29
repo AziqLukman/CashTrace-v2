@@ -4,6 +4,7 @@
   "private": true,
   "description": "CashTrace - Expense Tracker Application",
   "scripts": {
+    "build": "cd backend && npm install",
     "start": "node backend/app.js",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
