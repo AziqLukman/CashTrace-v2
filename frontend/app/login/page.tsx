@@ -60,7 +60,7 @@ export default function LoginPage() {
         localStorage.setItem('token', response.data.token);
         if (response.data.user) {
           localStorage.setItem('user', JSON.stringify(response.data.user));
-          
+
           // Restore user's theme preference before redirecting
           const userId = response.data.user.id || response.data.user._id;
           const savedTheme = localStorage.getItem(`theme_${userId}`);
@@ -97,10 +97,10 @@ export default function LoginPage() {
     }
 
     try {
-      await api.forgotPassword({ 
-        name: formData.name, 
-        email: formData.email, 
-        newPassword: formData.newPassword 
+      await api.forgotPassword({
+        name: formData.name,
+        email: formData.email,
+        newPassword: formData.newPassword
       });
       setSuccessMsg('Password berhasil diubah! Silakan login dengan password baru.');
       setFormData({ email: '', password: '', name: '', newPassword: '', confirmNewPassword: '' });
@@ -129,7 +129,7 @@ export default function LoginPage() {
 
         {/* Sign Up Form */}
         <div className={`${styles.formContainer} ${styles.signUp} bg-white dark:bg-[#1e293b]`}>
-          <form onSubmit={handleRegister}>
+          <form onSubmit={handleRegister} suppressHydrationWarning>
             <h1 className="font-bold text-2xl mb-2 text-[#111318] dark:text-white">Buat Akun</h1>
             <span className="text-xs mb-4 text-gray-500 dark:text-gray-400">Daftar dengan nama dan email</span>
 
@@ -143,6 +143,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">person</span>
@@ -157,6 +158,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">mail</span>
@@ -171,6 +173,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -185,7 +188,7 @@ export default function LoginPage() {
 
         {/* Sign In Form - Using Name */}
         <div className={`${styles.formContainer} ${styles.signIn} bg-white dark:bg-[#1e293b] ${formMode === 'forgotPassword' ? styles.slideOut : ''}`}>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} suppressHydrationWarning>
             <h1 className="font-bold text-2xl mb-2 text-[#111318] dark:text-white">Masuk</h1>
             <span className="text-xs mb-4 text-gray-500 dark:text-gray-400">Login dengan nama dan password</span>
 
@@ -200,6 +203,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">person</span>
@@ -214,6 +218,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11 pr-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -229,8 +234,8 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => { setFormMode('forgotPassword'); setError(''); setSuccessMsg(''); }}
               className="text-xs font-semibold text-primary hover:text-blue-700 dark:hover:text-blue-400 transition-colors mt-1 mb-2"
             >
@@ -244,7 +249,7 @@ export default function LoginPage() {
 
         {/* Forgot Password Form */}
         <div className={`${styles.formContainer} ${styles.forgot} bg-white dark:bg-[#1e293b] ${formMode === 'forgotPassword' ? styles.forgotVisible : ''}`}>
-          <form onSubmit={handleForgotPassword}>
+          <form onSubmit={handleForgotPassword} suppressHydrationWarning>
             <h1 className="font-bold text-2xl mb-2 text-[#111318] dark:text-white">Reset Password</h1>
             <span className="text-xs mb-4 text-gray-500 dark:text-gray-400">Masukkan nama dan email yang terdaftar</span>
 
@@ -259,6 +264,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">person</span>
@@ -273,6 +279,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">mail</span>
@@ -287,6 +294,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -301,6 +309,7 @@ export default function LoginPage() {
                 onChange={(e) => setFormData({ ...formData, confirmNewPassword: e.target.value })}
                 required
                 className="peer flex w-full resize-none overflow-hidden rounded-xl text-[#111318] dark:text-white focus:outline-hidden border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800/50 h-10 placeholder:text-gray-400 p-[15px] text-sm font-normal leading-normal focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all pl-11"
+                suppressHydrationWarning
               />
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 peer-focus:text-primary transition-colors pointer-events-none flex items-center justify-center">
                 <span className="material-symbols-outlined text-[18px]">lock</span>
@@ -310,9 +319,9 @@ export default function LoginPage() {
             <button disabled={loading} className="mt-2 w-full h-10 bg-primary hover:bg-blue-700 text-white font-bold rounded-xl shadow-[0_4px_14px_0_rgba(36,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(36,99,235,0.23)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
               {loading ? 'Processing...' : 'Reset Password'}
             </button>
-            
-            <button 
-              type="button" 
+
+            <button
+              type="button"
               onClick={() => { setFormMode('signIn'); setError(''); setSuccessMsg(''); }}
               className="mt-3 text-xs font-semibold text-primary hover:text-blue-700 dark:hover:text-blue-400 transition-colors flex items-center gap-1"
             >

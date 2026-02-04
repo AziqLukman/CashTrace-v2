@@ -21,18 +21,18 @@ const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 const generateTokens = async (userId) => {
   // Access token (short-lived)
   const accessToken = jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-  
+
   // Refresh token (long-lived)
   const refreshToken = uuidv4();
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-  
+
   // Save refresh token to database
   await pool.query(
     'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
     [userId, refreshToken, expiresAt]
   );
-  
+
   return { accessToken, refreshToken };
 };
 
@@ -52,7 +52,7 @@ router.post('/register', registerRules, validate, async (req, res, next) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Create user
     const [result] = await pool.query(
       'INSERT INTO users (email, password, name) VALUES (?, ?, ?)',
@@ -91,7 +91,7 @@ router.post('/login', loginRules, validate, async (req, res, next) => {
     }
 
     const user = users[0];
-    
+
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
@@ -280,10 +280,10 @@ router.post('/forgot-password', async (req, res, next) => {
 
     // Find user by name AND email
     const [users] = await pool.query(
-      'SELECT id FROM users WHERE name = ? AND email = ?', 
+      'SELECT id FROM users WHERE name = ? AND email = ?',
       [name, email]
     );
-    
+
     if (users.length === 0) {
       return response.error(res, 'Nama atau email tidak sesuai', 400);
     }

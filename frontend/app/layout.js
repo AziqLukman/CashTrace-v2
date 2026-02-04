@@ -4,7 +4,16 @@ import ClientLayout from './ClientLayout'
 export const metadata = {
   title: 'CashTrace',
   description: 'Kelola keuangan dengan cerdas',
+  manifest: '/manifest.json',
 }
+
+export const viewport = {
+  themeColor: "#2463eb",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 // Inline script to prevent flash of wrong theme
 // Login page should always be light mode, theme is per-user

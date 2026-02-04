@@ -2,13 +2,12 @@
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
-// Support both custom env vars (DB_*) and Railway's auto-generated vars (MYSQL*)
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-  port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cashtrace',
-  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306,
+  database: process.env.DB_NAME || 'cashtrace',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
@@ -20,18 +19,15 @@ const pool = mysql.createPool({
   dateStrings: true
 });
 
-// Test connection (don't exit on failure - just log error)
-const testConnection = async () => {
-  try {
-    const connection = await pool.getConnection();
+// Test connection
+pool.getConnection()
+  .then(connection => {
     console.log('Database connected successfully');
     connection.release();
-  } catch (err) {
-    console.error('Database connection error:', err.message);
-    console.log('Server will continue running. Please configure database environment variables.');
-  }
-};
-
-testConnection();
+  })
+  .catch(err => {
+    console.error('Database connection error:', err);
+    process.exit(-1);
+  });
 
 module.exports = pool;

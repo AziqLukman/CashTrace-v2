@@ -11,7 +11,7 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: ['http://localhost:3000', 'http://192.168.68.106:3000', 'http://192.168.1.9:3000', 'http://192.168.1.8:3000', '*'],
   credentials: true
 }));
 app.use(morgan('dev'));
@@ -38,7 +38,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 

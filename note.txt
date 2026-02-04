@@ -1,0 +1,58 @@
+jika frontend error, jalankan perintah ini di terminal:
+rm -rf .next
+rm -rf node_modules/.cache
+npm run dev
+
+========================================================================
+PANDUAN AKSES MOBILE (LOCAL DEV)
+========================================================================
+1. SAMA JARINGAN
+   - Pastikan Laptop dan HP connect ke Wi-Fi SSID yang SAMA.
+   - Hati-hati router yang memisahkan SSID 2.4GHz dan 5GHz (Isolation).
+
+2. CARI IP LAPTOP
+   - Buka terminal: `ipconfig`
+   - Salin IPv4 Address (contoh: 192.168.68.106)
+
+3. SETTING FRONTEND
+   - File `.env.local`:
+     NEXT_PUBLIC_API_URL=http://192.168.68.106:5000/api
+   - File `next.config.ts`:
+     experimental: { allowedDevOrigins: ["192.168.68.106:3000", "192.168.68.106"] }
+
+4. SETTING BACKEND
+   - File `app.js`:
+     app.listen(PORT, '0.0.0.0', ...)  <-- Supaya listen ke semua IP
+     origin: ['http://localhost:3000', '*', ...]  <-- Izin CORS
+
+5. FIREWALL (WAJIB)
+   - Buka "Windows Defender Firewall with Advanced Security".
+   - Inbound Rules -> New Rule -> Port -> TCP -> 3000, 5000 -> Allow.
+
+6. RESTART
+   - Matikan (Ctrl+C) dan Nyalakan lagi `npm run dev` di KEDUA terminal.
+
+========================================================================
+PANDUAN DEPLOYMENT (ONLINE PRODUCTION)
+========================================================================
+Untuk mengonlinekan (misal ke Vercel/Render), settingan harus diubah:
+
+1. DATABASE (MongoDB)
+   - Tidak bisa pakai `localhost`.
+   - Buat database gratis di MongoDB Atlas (https://www.mongodb.com/atlas).
+   - Update `.env` Backend: `MONGO_URI=mongodb+srv://...`
+
+2. BACKEND (Node.js)
+   - Hosting di: Render.com / Railway.app (Gratis/Murah).
+   - Di `app.js`, ubah CORS origin jadi domain frontend Anda nanti.
+     origin: 'https://cashtrace.vercel.app' (Contoh)
+
+3. FRONTEND (Next.js)
+   - Hosting di: Vercel.com (Gratis & Terbaik untuk Next.js).
+   - Saat deploy di Vercel, masuk ke Settings -> Environment Variables.
+   - Tambahkan `NEXT_PUBLIC_API_URL` dengan value link backend Anda (misal: https://cashtrace-api.onrender.com/api).
+   - PENTING: Value harus `https://`, kalau tidak PWA tidak jalan.
+
+4. BUILD
+   - Di production, jangan pakai `npm run dev`.
+   - Pakai `npm run build` lalu `npm start` (Vercel otomatis melakukan ini).

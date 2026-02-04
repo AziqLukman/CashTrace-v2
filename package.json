@@ -1,15 +1,13 @@
 {
-  "name": "cashtrace",
-  "version": "1.0.0",
-  "private": true,
-  "description": "CashTrace - Expense Tracker Application",
-  "scripts": {
-    "build": "cd backend && npm install",
-    "start": "node backend/app.js",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "install:backend": "cd backend && npm install",
-    "install:frontend": "cd frontend && npm install",
-    "install:all": "npm run install:backend && npm run install:frontend"
-  }
+    "name": "cashtrace-v2",
+    "version": "2.1.0",
+    "description": "Aplikasi CashTrace V2.1.0 - PWA Enabled",
+    "private": true,
+    "scripts": {
+        "dev:frontend": "cd frontend && npm run dev",
+        "dev:backend": "cd backend && npm run dev",
+        "install:all": "cd frontend && npm install && cd ../backend && npm install"
+    },
+    "author": "Ajekkk",
+    "license": "ISC"
 }
