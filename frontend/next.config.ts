@@ -4,9 +4,14 @@ const withPWA = require("@ducanh2912/next-pwa").default({
   disable: process.env.NODE_ENV === "development",
 });
 
-const nextConfig = {
-  experimental: {
-    allowedDevOrigins: ["192.168.68.106:3000", "192.168.68.106"],
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://127.0.0.1:5000/api/:path*',
+      },
+    ];
   },
 };
 

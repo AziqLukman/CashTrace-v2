@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "BACKEND API AJEK",
   "license": "ISC",
   "author": "",
@@ -8,7 +8,7 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon app.js",
+    "dev": "set PORT=5001 && nodemon app.js",
     "start": "node app.js"
   },
   "dependencies": {

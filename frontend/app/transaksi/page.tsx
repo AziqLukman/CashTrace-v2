@@ -99,8 +99,10 @@ export default function TransaksiPage() {
 
       if (res.data && Array.isArray(res.data)) {
         setData(res.data);
-        setTotalItems(res.total || res.data.length);
-        setTotalPages(res.totalPages || 1);
+        // Fix: Read pagination from res.pagination object
+        const pagination = res.pagination || {};
+        setTotalItems(pagination.totalItems || res.total || res.data.length);
+        setTotalPages(pagination.totalPages || res.totalPages || 1);
       } else {
         setData([]);
       }
@@ -320,7 +322,8 @@ export default function TransaksiPage() {
       {/* Data Table */}
       <div className="flex flex-col gap-4">
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-surface-dark dark:border-slate-800 transition-colors duration-200">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50 dark:bg-slate-900/50 dark:border-slate-800">
                 <tr>
@@ -383,7 +386,6 @@ export default function TransaksiPage() {
                       </td>
                       <td className="whitespace-nowrap px-6 py-4">
                         <div className="flex items-center justify-center gap-1">
-                          {/* Edit Button */}
                           <button
                             onClick={() => handleEditClick(transaction)}
                             className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-600 dark:text-slate-500 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 transition-colors cursor-pointer"
@@ -391,7 +393,6 @@ export default function TransaksiPage() {
                           >
                             <span className="material-symbols-outlined text-[20px]">edit</span>
                           </button>
-                          {/* Delete Button */}
                           <button
                             onClick={() => setDeleteConfirmId(transaction.id)}
                             className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-900/20 dark:hover:text-rose-400 transition-colors cursor-pointer"
@@ -408,26 +409,162 @@ export default function TransaksiPage() {
             </table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden">
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="flex justify-center items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  <span>Memuat data...</span>
+                </div>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                {debouncedSearch || dateRange !== 'all'
+                  ? 'Tidak ada transaksi yang sesuai dengan filter'
+                  : 'Belum ada transaksi'}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {data.map((transaction) => (
+                  <div key={transaction.id} className="p-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:bg-surface-dark dark:border-slate-800 transition-all">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${transaction.type === 'income' 
+                          ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                          : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                        }`}>
+                          <span className="material-symbols-outlined text-[20px]">
+                            {transaction.type === 'income' ? 'trending_up' : 'trending_down'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {transaction.category_name}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              • {formatDate(transaction.transaction_date, { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 line-clamp-1">
+                            {transaction.description}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`block font-bold text-sm ${transaction.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                          }`}>
+                          {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+                      <button
+                        onClick={() => handleEditClick(transaction)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-slate-600 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">edit</span>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmId(transaction.id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/30 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">delete</span>
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-3 dark:bg-surface-dark dark:border-slate-800 transition-colors">
+            <div className="flex items-center justify-between border-t border-slate-200 bg-white px-6 py-3 dark:bg-surface-dark dark:border-slate-800 transition-colors flex-col sm:flex-row gap-4 sm:gap-0">
               <div className="text-sm text-slate-500 dark:text-slate-400">
-                Halaman {currentPage} dari {totalPages} ({totalItems} transaksi)
+                Menampilkan <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> sampai <span className="font-medium">{Math.min(currentPage * 10, totalItems)}</span> dari <span className="font-medium">{totalItems}</span> hasil
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm disabled:opacity-50 hover:bg-slate-50 dark:bg-surface-dark dark:border-slate-800 dark:hover:bg-slate-700 transition-colors"
+                  className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
                 >
-                  Sebelumnya
+                  Prev
                 </button>
+                
+                {/* Page Numbers Logic */}
+                {(() => {
+                  const pages = [];
+                  const maxVisiblePages = 5; // Adjust as needed
+                  
+                  if (totalPages <= maxVisiblePages) {
+                    for (let i = 1; i <= totalPages; i++) {
+                      pages.push(i);
+                    }
+                  } else {
+                    // Always show 1
+                    pages.push(1);
+                    
+                    let startPage = Math.max(2, currentPage - 1);
+                    let endPage = Math.min(totalPages - 1, currentPage + 1);
+                    
+                    // Adjust if near start
+                    if (currentPage <= 3) {
+                      endPage = Math.min(totalPages - 1, 4);
+                    }
+                    
+                    // Adjust if near end
+                    if (currentPage >= totalPages - 2) {
+                      startPage = Math.max(2, totalPages - 3);
+                    }
+
+                    if (startPage > 2) {
+                      pages.push('...');
+                    }
+                    
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(i);
+                    }
+                    
+                    if (endPage < totalPages - 1) {
+                      pages.push('...');
+                    }
+                    
+                    // Always show last
+                    pages.push(totalPages);
+                  }
+                  
+                  return pages.map((p, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => typeof p === 'number' && setCurrentPage(p)}
+                      disabled={p === '...'}
+                      className={`
+                        min-w-[32px] rounded-md px-3 py-1.5 text-sm font-medium transition-colors border
+                        ${p === currentPage
+                          ? 'bg-primary text-white border-primary z-10'
+                          : p === '...'
+                            ? 'text-slate-700 border-transparent cursor-default dark:text-slate-400' 
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
+                        }
+                      `}
+                    >
+                      {p}
+                    </button>
+                  ));
+                })()}
+
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm disabled:opacity-50 hover:bg-slate-50 dark:bg-surface-dark dark:border-slate-800 dark:hover:bg-slate-700 transition-colors"
+                  className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
                 >
-                  Selanjutnya
+                  Next
                 </button>
               </div>
             </div>

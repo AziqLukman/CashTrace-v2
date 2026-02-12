@@ -1,13 +1,13 @@
 {
-    "name": "cashtrace-v2",
-    "version": "2.1.1",
-    "description": "Aplikasi CashTrace V2.1.1 - Adding Splash Screen",
-    "private": true,
-    "scripts": {
-        "dev:frontend": "cd frontend && npm run dev",
-        "dev:backend": "cd backend && npm run dev",
-        "install:all": "cd frontend && npm install && cd ../backend && npm install"
-    },
-    "author": "Ajekkk",
-    "license": "ISC"
+  "name": "cashtrace-v2",
+  "version": "2.1.2",
+  "description": "Aplikasi CashTrace V2.1.2 - Optimalisasi mode mobile",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "author": "Ajekkk",
+  "license": "ISC"
 }

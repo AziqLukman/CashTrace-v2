@@ -56,3 +56,299 @@ Untuk mengonlinekan (misal ke Vercel/Render), settingan harus diubah:
 4. BUILD
    - Di production, jangan pakai `npm run dev`.
    - Pakai `npm run build` lalu `npm start` (Vercel otomatis melakukan ini).
+
+========================================================================
+STEP BY STEP AUTO START PM2 (BACKEND & FRONTEND), CLOUDFLARE TUNNEL, & VPS
+========================================================================
+# Tutorial Setup Production: Next.js + Express + Cloudflare Tunnel (Windows)
+
+Berikut adalah ringkasan langkah-langkah yang kita lakukan, mulai dari **Cara Normal** sampai **Cara Mengatasi Error** yang kita temui.
+
+---
+
+## BAGIAN 1: PERSIAPAN (NORMAL FLOW)
+Langkah standar untuk deploy aplikasi Next.js & Express di Windows.
+
+1.  **Install PM2 (Process Manager):**
+    Di terminal Administrator:
+    ```bash
+    npm install -g pm2 pm2-windows-startup
+    pm2-startup install
+    ```
+
+2.  **Buat Config PM2 (`ecosystem.config.js`):**
+    Ini supaya kita bisa menjalankan banyak aplikasi sekaligus dengan satu perintah.
+    ```javascript
+    module.exports = {
+      apps: [
+        { name: "ajek-frontend", script: "npm", args: "start", cwd: "./frontend" },
+        { name: "ajek-backend", script: "npm", args: "start", cwd: "./backend" }
+      ]
+    };
+    ```
+
+3.  **Jalankan Aplikasi:**
+    ```bash
+    pm2 start ecosystem.config.js
+    pm2 save  # Simpan daftar proses agar auto-start
+    ```
+
+---
+
+## BAGIAN 2: SETUP CLOUDFLARE TUNNEL (NORMAL FLOW)
+Supaya aplikasi bisa diakses online tanpa membuka port router (Aman).
+
+1.  **Login Cloudflare:**
+    ```bash
+    cloudflared tunnel login
+    ```
+
+2.  **Buat Tunnel:**
+    ```bash
+    cloudflared tunnel create <nama_tunnel>
+    ```
+
+3.  **Buat Config Tunnel (`tunnel-config.yml`):**
+    Isi file ini menentukan kemana traffic diarahkan.
+    *   **Contoh Awal (Salah):** Routing rumit (`/api` ke 5000, `/` ke 3000).
+    *   **Solusi Akhir (Benar):** Routing sederhana (SEMUA ke 3000), biarkan Next.js yang membagi traffic internal (`rewrites`).
+
+4.  **Route DNS:**
+    ```bash
+    cloudflared tunnel route dns <nama_tunnel> <domain>
+    ```
+
+---
+
+## BAGIAN 3: DRAMA ERROR & SOLUSI (TROUBLESHOOTING)
+Ini adalah kumpulan masalah yang kita hadapi dan cara menyelesaikannya.
+
+### 🔴 Kasus 1: "Permission Denied" saat Copy File Config
+**Error:** Saat pakai Git Bash, perintah install service gagal karena tidak bisa akses folder `C:\Windows\System32`.
+**Solusi:**
+*   Gunakan **Command Prompt (CMD)** biasa, klik kanan -> **Run as Administrator**.
+*   Gunakan perintah `copy` (CMD) bukan `cp` (Bash).
+    ```cmd
+    copy "D:\folder\file.yml" "C:\Windows\System32\config\systemprofile\.cloudflared\"
+    ```
+
+### 🔴 Kasus 2: "Service Start Failed" (Error 1067 / 1053)
+**Error:** Windows Service `cloudflared` gagal start.
+**Penyebab:**
+1.  Service dijalankan oleh akun `SYSTEM` (Default), tapi file config ada di folder User pribadi (`C:\Users\...`). Akun SYSTEM tidak punya izin baca folder User.
+2.  Salah format file Config (Line ending Windows CLRF vs Unix LF).
+
+**Solusi:**
+*   Beri izin user SYSTEM ke folder User: `icacls "folder" /grant SYSTEM:(OI)(CI)F`.
+*   Atau cara paling ampuh: **Jangan pakai Windows Service bawaan**. Pakai **Startup Script Manual** (Lihat Bagian 4).
+
+### 🔴 Kasus 3: Browser Masih Membuka XAMPP / IP Lama
+**Error:** Domain sudah diarahkan ke Cloudflare, tapi di browser muncul halaman XAMPP atau "Site Can't Be Reached".
+**Penyebab:** **DNS Cache & Browser Cache**. Komputer/ISP masih mengingat alamat IP lama.
+**Solusi:**
+*   **Flush DNS:** `ipconfig /flushdns`.
+*   **Purge Cache Cloudflare:** Di dashboard -> Caching -> Purge Everything.
+*   **Tunggu:** DNS Global butuh waktu 1-24 jam (Propagasi).
+*   **Cek Pakai HP:** Gunakan data seluler untuk memastikan web sudah benar.
+
+### 🔴 Kasus 4: Error 404 (File Not Found) pada Asset JS
+**Error:** Halaman web terbuka sebagian, tapi JS error / blank putih. Console browser merah semua (404).
+**Penyebab:** **Build Mismatch**. Aplikasi Next.js sedang menjalankan versi build LAMA, tapi browser meminta file build BARU (atau sebaliknya). Sering terjadi kalau kita lupa restart PM2 setelah `npm run build`.
+**Solusi:**
+1.  Stop Aplikasi: `pm2 stop all`.
+2.  Bersihkan Build Lama: Hapus folder `.next`.
+3.  Build Ulang: `npm run build`.
+4.  Start Ulang: `pm2 restart all`.
+
+### 🔴 Kasus 5: Tunnel Routing Kacau (Backend Menerima Request Frontend)
+**Error:** Request ke frontend (`/_next/...`) malah nyasar ke Backend (Express 5000), jadi 404.
+**Penyebab:** Konfigurasi tunnel ingress rule terlalu kompleks atau salah urutan.
+**Solusi Terbaik:**
+1.  Ubah `tunnel-config.yml` agar **SEMUA traffic masuk ke Frontend (Port 3000)**.
+2.  Di Next.js (`next.config.ts`), tambahkan **Rewrites**:
+    ```javascript
+    async rewrites() {
+        return [{ source: '/api/:path*', destination: 'http://127.0.0.1:5000/api/:path*' }];
+    }
+    ```
+    *Ingat: Setelah ubah config ini, WAJIB build ulang Next.js!*
+
+---
+
+## BAGIAN 4: JURUS TERAKHIR (STARTUP SCRIPT)
+Jika Windows Service `cloudflared` terus bermasalah (gagal start otomatis), gunakan cara manual ini yang 100% Works.
+
+1.  Buka folder Startup: Tekan `Win + R`, ketik `shell:startup`.
+2.  Buat file **`start_cf.bat`**:
+    ```bat
+    @echo off
+    timeout /t 15
+    cd /d D:\lokasi\project
+    cloudflared tunnel --config tunnel-config.yml run
+    ```
+3.  Buat file **`StartHidden.vbs`** (untuk menyembunyikan terminal hitam):
+    ```vbs
+    Set WshShell = CreateObject("WScript.Shell")
+    WshShell.Run chr(34) & "C:\Users\...\Start Menu\Programs\Startup\start_cf.bat" & chr(34), 0
+    Set WshShell = Nothing
+    ```
+4.  Jalankan `StartHidden.vbs`. Selesai!
+
+---
+
+## Cara Maintenance (Sehari-hari)
+
+**Kalau ada update codingan:**
+1.  Pull dari Git.
+2.  Matikan sementara: `pm2 stop ecosystem.config.js`.
+3.  Build ulang frontend: `cd frontend && npm run build`.
+4.  Nyalakan lagi: `pm2 restart ecosystem.config.js`.
+5.  Cloudflare Tunnel tidak perlu diapa-apakan (dia hanya pipa penyalur).
+
+**Kalau Web Error:**
+1.  Cek apakah Tunnel jalan: `tasklist | findstr cloudflared`.
+2.  Cek log PM2: `pm2 logs`.
+3.  Restart Tunnel Manual: Double click `StartHidden.vbs` di folder startup.
+
+========================================================================
+CARA UPDATE CODINGAN (AMAN & BENAR)
+========================================================================
+Pertanyaan: "Apakah harus dicadangkan dulu?"
+Jawab: SANGAT DISARANKAN. Kalau codingan error, website mati total.
+
+**Langkah-Langkah Aman:**
+
+1.  **BACKUP DULU!** (Opsional tapi Penting)
+    - Copy satu folder `CashTrace-v2` lalu paste jadi `CashTrace-v2-Backup`.
+    - Kalau error parah, tinggal balik ke folder backup.
+
+2.  **STOP APLIKASI (Recommended)**
+    - **PM2 (Aplikasi)**: YA, Matikan dulu (`pm2 stop ecosystem.config.js`). Kalau tidak dimatikan, file yang sedang berjalan mungkin terkunci atau crash saat diedit.
+    - **Cloudflare Tunnel**: TIDAK PERLU. Biarkan saja jalan terus. Kalau aplikasi mati, website cuma akan error 502 sebentar, nanti normal lagi begitu aplikasi nyala.
+
+3.  **EDIT KODE**
+    - Silakan ubah kodingan (Frontend/Backend) di VS Code seperti biasa.
+
+4.  **TESTING MANUAL (Mode Dev)**
+    Jangan langsung build! Pastikan jalan dulu di mode development.
+    ```bash
+    # Terminal 1 (Frontend)
+    cd frontend
+    npm run dev
+    # Terminal 2 (Backend) - jika ada perubahan backend
+    cd backend
+    npm run dev
+    ```
+    - Buka `localhost:3000` di browser. Cek apakah fitur baru sudah jalan.
+
+5.  **BUILD ULANG (Wajib untuk Frontend)**
+    Kalau codingan sudah oke, matikan mode dev (Ctrl+C).
+    ```bash
+    cd frontend
+    npm run build
+    ```
+    *(Tunggu sampai sukses. Kalau gagal build, perbaiki errornya dulu).*
+
+6.  **NYALAKAN LAGI (Production)**
+    ```bash
+    # Kembali ke folder utama
+    cd ..
+    pm2 restart ecosystem.config.js
+    ```
+
+7.  **CEK WEBSITE**
+    Buka `https://ajekkk.my.id`. Perubahan harusnya sudah muncul!
+
+========================================================================
+PENJELASAN ARSITEKTUR: DULU VS SEKARANG
+========================================================================
+Bingung kenapa Mikrotik & CPanel gak kepakai? Ini analoginya:
+
+**A. MIKROTIK (IP PUBLIC)**
+- **DULU (Cara Kuno):**
+  Ibarat rumah kamu punya "Pintu Depan" (Mikrotik) yang alamatnya dipasang di Google Maps (IP Public).
+  Semua orang tau alamat rumahmu. Kalau ada tamu jahat (Hacker), dia bisa gedor-gedor pintu depan (Port Scanning).
+  Kamu harus suruh Satpam (Port Forwarding) buat bukain pintu khusus tamu CashTrace.
+- **SEKARANG (Cloudflare Tunnel):**
+  Kamu membangun "Terowongan Bawah Tanah Rahasia" (Tunnel) langsung dari kamar tidur (Laptop Server) tembus ke Markas Cloudflare.
+  Tamu masuk lewat Markas Cloudflare, lalu disalurkan lewat terowongan itu.
+  **Efeknya:**
+  - Pintu Depan rumahmu (Mikrotik) bisa DIKUNCI RAPAT. Gak ada yang tau alamat aslimu.
+  - IP Public di Mikrotik jadi gak penting buat CashTrace (bisa dihapus kalau cuma buat ini).
+
+**B. CPANEL**
+- **DULU:**
+  Ibarat kantor kelurahan tempat kamu bikin KTP (Domain `ajekkk.my.id`).
+  Dulu kamu juga sewa gudang di sana (Hosting File).
+- **SEKARANG:**
+  Kamu cuma butuh CPanel buat **PERPANJANG KTP (DOMAIN)** setahun sekali.
+  Gudangnya (Hosting) gak kepakai, karena barangnya (Website) kamu simpan di laptop sendiri.
+  **Kesimpulan:** Jangan hapus CPanel kalau disitu tempat kamu bayar perpanjangan domain `ajekkk.my.id`. Tapi fitur "File Manager", "MySQL", "Email" di CPanel boleh dicuekin.
+
+
+========================================================================
+CARA HOSTING BANYAK WEB DI SATU LAPTOP
+========================================================================
+Pertanyaan: "Kalau mau online-kan project lain gimana?"
+Jawab: Pakai **SUBDOMAIN**.
+
+Contoh:
+- `ajekkk.my.id` -> Masuk ke CashTrace (Port 3000)
+- `toko.ajekkk.my.id` -> Masuk ke Web Toko Baru (Port 4000)
+- `blog.ajekkk.my.id` -> Masuk ke Blog (Port 8080)
+
+**Langkah Umum:**
+1.  Jalankan project baru di port beda (misal 4000).
+2.  Bikin CNAME di Cloudflare (`toko` -> Tunnel).
+3.  Tambah ingress rule di `tunnel-config.yml`.
+
+========================================================================
+SKENARIO KHUSUS: AJEKKK.MY.ID JADI PORTFOLIO
+========================================================================
+Jika kamu ingin:
+- `ajekkk.my.id` -> Website Portfolio Pribadi (Landing Page).
+- `app.ajekkk.my.id` -> Aplikasi CashTrace (Login).
+
+**Langkahnya:**
+
+1.  **Siapkan Website Portfolio:**
+    - Buat foldernya, misal `d:\ajek\portfolio`.
+    - Jalankan di port beda, misal **Port 4000**.
+
+2.  **Setting DNS Cloudflare:**
+    - Pastikan `ajekkk.my.id` (Root) sudah CNAME ke Tunnel.
+    - Buat CNAME baru: `app` -> Target ke Tunnel juga.
+
+3.  **Ubah Konfigurasi Tunnel (`tunnel-config.yml`):**
+    Ubah urutannya jadi begini (Portfolio di Root, CashTrace di Subdomain):
+
+    ```yaml
+    ingress:
+      # 1. CashTrace dipindah ke Subdomain
+      - hostname: app.ajekkk.my.id
+        service: http://127.0.0.1:3000
+
+      # 2. Portfolio menguasai Domain Utama
+      - hostname: ajekkk.my.id
+        service: http://127.0.0.1:4000
+
+      # Catch-all
+      - service: http_status:404
+      ```
+
+4.  **Restart Tunnel:**
+    Jalankan lagi `StartHidden.vbs` atau restart laptop.
+
+Selesai! Sekarang `ajekkk.my.id` jadi profil keren kamu, dan `app.ajekkk.my.id` jadi tempat login aplikasi.
+
+===================================================================================
+JIKA SEMUA PM2 DAN TUNNEL DAH AKTIF TETAPI GABISA LOGIN DAN DAFTAR (FAILED TO FETCH)
+===================================================================================
+1. Cek dulu database udah konek belum (xampp udah nyala belum)
+2. Cek dulu pm2 udah jalan belum (pm2 status)
+3. Cek dulu cloudflare tunnel udah jalan belum (cloudflared tunnel list)
+4. Matikan pm2 pm2 stop ajek-frontend-cashtrace jika perlu backend juga
+5. Masuk ke folder cd frontend untuk hapus build lama rm -rf .next lalu npm run build
+6. Setelah selesai build jalankan pm2 restart ajek-frontend-cashtrace
+5. Jika jalan semua matikan tunnel (cloudflared tunnel stop --all) atau langsung kill (taskkill /F /IM cloudflared.exe)
+6. Coba test jalankan tunnel (cloudflared tunnel --config tunnel-config.yml run)

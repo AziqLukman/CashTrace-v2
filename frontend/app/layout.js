@@ -5,6 +5,10 @@ export const metadata = {
   title: 'CashTrace',
   description: 'Kelola keuangan dengan cerdas',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192x192.png',
+    apple: '/icon-192x192.png',
+  },
 }
 
 export const viewport = {

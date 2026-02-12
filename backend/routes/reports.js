@@ -190,19 +190,41 @@ router.post('/download', async (req, res, next) => {
 
       // 3. CHART SECTION
       y += 50;
-      doc.fillColor(C_DARK).fontSize(10).font('Helvetica-Bold').text('ANALISIS ARUS KAS (HARIAN)', 60, y);
+      doc.fillColor(C_DARK).fontSize(10).font('Helvetica-Bold').text('ANALISIS ARUS UANG', 60, y); // UPDATED TEXT
       doc.rect(50, y, 3, 12).fill(C_PRIMARY);
 
       y += 30;
       const chartHeight = 120;
       const chartTop = y;
       const chartLeft = 90;
-
+      
+      // -- UPDATED CHART LOGIC (Dynamic Slicing/Scaling) --
       let chartDays = Object.values(dailyData).sort((a, b) => new Date(a.date) - new Date(b.date));
-      if (chartDays.length > 7 && (new Date(endDate) - new Date(startDate)) > 7 * 24 * 60 * 60 * 1000) {
-        chartDays = chartDays.slice(-7);
-      } else if (chartDays.length > 10) {
-        chartDays = chartDays.slice(-10);
+      
+      // Calculate available width
+      const maxChartWidth = 545 - chartLeft; 
+      const totalDays = chartDays.length;
+      
+      // Default / Min width settings
+      const minBarW = 2; // Increased minimum visibility for many days
+      const minGap = 1;
+      
+      // Ideally we want barW ~ 15, gap ~ 30.
+      // If items * (15 + 30) > maxChartWidth, we scale down.
+      
+      let barW = 15;
+      let gap = 20;
+      
+      if (totalDays > 0) {
+        const requiredWidth = totalDays * (barW * 2 + gap);
+        if (requiredWidth > maxChartWidth) {
+          // Scale down
+          const availablePerItem = maxChartWidth / totalDays;
+          // each item needs 2 bars + gap. Let's say gap is same as barW.
+          // 3 * barW = availablePerItem => barW = availablePerItem / 3
+          barW = Math.max(minBarW, (availablePerItem * 0.6) / 2); // 60% for bars, 40% for gap?
+          gap = Math.max(minGap, availablePerItem * 0.4);
+        }
       }
 
       const maxVal = Math.max(...chartDays.map(d => Math.max(d.income, d.expense)), 100);
@@ -213,21 +235,25 @@ router.post('/download', async (req, res, next) => {
       doc.text('0', 50, chartTop + chartHeight, { width: 35, align: 'right' });
 
       let x = chartLeft;
-      const barW = 15;
-      const gap = 30;
-
-      chartDays.forEach(d => {
+      
+      chartDays.forEach((d, index) => {
         const hInc = (d.income / maxVal) * chartHeight;
         const hExp = (d.expense / maxVal) * chartHeight;
 
         if (hInc > 0) doc.rect(x, chartTop + chartHeight - hInc, barW, hInc).fill(C_PRIMARY);
         else doc.rect(x, chartTop + chartHeight - 1, barW, 1).fill(C_PRIMARY);
 
-        if (hExp > 0) doc.rect(x + barW + 2, chartTop + chartHeight - hExp, barW, hExp).fill('#cbd5e1');
-        else doc.rect(x + barW + 2, chartTop + chartHeight - 1, barW, 1).fill('#cbd5e1');
+        if (hExp > 0) doc.rect(x + barW + (gap * 0.1), chartTop + chartHeight - hExp, barW, hExp).fill('#cbd5e1');
+        else doc.rect(x + barW + (gap * 0.1), chartTop + chartHeight - 1, barW, 1).fill('#cbd5e1');
 
-        doc.fillColor(C_GRAY).text(formatDateShort(d.date), x - 5, chartTop + chartHeight + 8, { width: barW * 2 + 7, align: 'center' });
-
+        // Only show date label if there's enough space
+        // simple heuristic: if barW > 10, show all. Else show every nth.
+        const showLabel = barW > 10 || (index % Math.ceil(50 / (barW * 2 + gap))) === 0;
+        
+        if (showLabel) {
+             doc.fillColor(C_GRAY).text(formatDateShort(d.date), x - 5, chartTop + chartHeight + 8, { width: barW * 2 + gap + 10, align: 'center' });
+        }
+       
         x += (barW * 2 + gap);
       });
 
@@ -237,25 +263,38 @@ router.post('/download', async (req, res, next) => {
       doc.rect(chartLeft + 80, legendY, 10, 10).fill('#cbd5e1');
       doc.text('Pengeluaran', chartLeft + 95, legendY + 2);
 
-      // 4. TRANSACTIONS DETAIL
+      // 4. TRANSACTIONS DETAIL (UPDATED TABLE STYLE)
       y = legendY + 40;
       doc.fillColor(C_DARK).fontSize(10).font('Helvetica-Bold').text('DETAIL TRANSAKSI', 60, y);
       doc.rect(50, y, 3, 12).fill(C_PRIMARY);
 
-      y += 20;
-      doc.rect(50, y, 495, 20).fill('#f8fafc');
-      doc.fontSize(7).fillColor(C_GRAY).font('Helvetica-Bold');
+      // Header Background
+      doc.rect(50, y, 495, 20).fill('#eff6ff'); // Light blue background to match theme
+      
+      // Header Text
+      doc.fontSize(7).fillColor(C_DARK).font('Helvetica-Bold');
       doc.text('TANGGAL', 60, y + 6);
       doc.text('KATEGORI', 130, y + 6);
       doc.text('DESKRIPSI', 230, y + 6);
       doc.text('TIPE', 380, y + 6, { align: 'center', width: 60 });
       doc.text('JUMLAH', 450, y + 6, { align: 'right', width: 80 });
 
+      // Header Grid Lines (Blue)
+      doc.lineWidth(0.5).strokeColor(C_PRIMARY); 
+      doc.rect(50, y, 495, 20).stroke(); // Outer border
+      doc.moveTo(125, y).lineTo(125, y + 20).stroke(); // Vertical Separators
+      doc.moveTo(225, y).lineTo(225, y + 20).stroke();
+      doc.moveTo(375, y).lineTo(375, y + 20).stroke();
+      doc.moveTo(445, y).lineTo(445, y + 20).stroke();
+
       y += 20;
       doc.font('Helvetica');
 
-      transactions.forEach(t => {
+      transactions.forEach((t, index) => {
         if (y > 720) { doc.addPage(); y = 50; }
+        
+        // Simple list style with BLUE vertical column lines
+        // No zebra striping
 
         doc.fillColor(C_DARK).text(formatDateId(t.date), 60, y + 5);
         doc.font('Helvetica-Bold').text(t.category_name || 'Lainnya', 130, y + 5);
@@ -265,16 +304,40 @@ router.post('/download', async (req, res, next) => {
         doc.fillColor(isInc ? C_GREEN : C_RED).text(isInc ? 'Pemasukan' : 'Pengeluaran', 380, y + 5, { align: 'center', width: 60 });
         doc.font('Helvetica-Bold').text(formatRp(t.amount), 450, y + 5, { align: 'right', width: 80 });
 
-        doc.moveTo(50, y + 18).lineTo(545, y + 18).strokeColor('#f1f5f9').lineWidth(0.5).stroke();
+        // Vertical lines for columns (BLUE)
+        doc.lineWidth(0.5).strokeColor(C_PRIMARY); // Blue
+        doc.moveTo(50, y).lineTo(50, y + 20).stroke(); // Left
+        doc.moveTo(125, y).lineTo(125, y + 20).stroke();
+        doc.moveTo(225, y).lineTo(225, y + 20).stroke();
+        doc.moveTo(375, y).lineTo(375, y + 20).stroke();
+        doc.moveTo(445, y).lineTo(445, y + 20).stroke();
+        doc.moveTo(545, y).lineTo(545, y + 20).stroke(); // Right
+        
+        // Horizontal line bottom of row
+        doc.moveTo(50, y + 20).lineTo(545, y + 20).stroke();
+        
         y += 20;
       });
 
-      y += 5;
-      doc.rect(50, y - 5, 495, 25).fill('#f8fafc');
-      doc.moveTo(50, y - 5).lineTo(545, y - 5).strokeColor(C_PRIMARY).lineWidth(1).stroke();
-      doc.fontSize(9).fillColor(C_DARK).font('Helvetica-Bold').text('TOTAL', 60, y + 4);
-      doc.fillColor(C_GREEN).text('+' + formatRp(totalIncome), 300, y + 4, { width: 100, align: 'right' });
-      doc.fillColor(C_RED).text('-' + formatRp(totalExpense), 430, y + 4, { width: 100, align: 'right' });
+      // Total Section (Footer) -> Now integrated into the grid look
+      y += 5; // spacing? Or attached? User said "biar ga pisah". Let's attach it.
+      y -= 5; // Remove spacing to attach
+      
+      doc.rect(50, y, 495, 25).fill('#eff6ff'); // Light blue background
+      
+      // Footer Content
+      doc.fontSize(9).fillColor(C_DARK).font('Helvetica-Bold').text('TOTAL', 60, y + 8);
+      doc.fillColor(C_GREEN).text('+' + formatRp(totalIncome), 300, y + 8, { width: 100, align: 'right' });
+      doc.fillColor(C_RED).text('-' + formatRp(totalExpense), 430, y + 8, { width: 100, align: 'right' });
+
+      // Footer Grid Lines (Blue)
+      doc.lineWidth(0.5).strokeColor(C_PRIMARY);
+      doc.rect(50, y, 495, 25).stroke(); // Outer box
+      // Vertical separators for total? Maybe typically total is one block, or matches columns.
+      // Usually total spans across, but let's draw lines to match structure if desired. 
+      // "Header dan footernya juga dong"
+      // Let's just frame the footer nicely in blue.
+
 
       // 5. INSIGHTS
       y += 40;
@@ -299,9 +362,8 @@ router.post('/download', async (req, res, next) => {
       doc.fillColor(C_DARK).font('Helvetica-Bold').text('Fokus Pengeluaran: ' + topCat.name, 75, y);
       doc.fillColor(C_GRAY).font('Helvetica').text(`Pengeluaran terbesar di ${topCat.name} sebesar ${formatRp(topCat.total)} (${topCatPct}%).`, 75, y + 12, { width: 450 });
 
-      const bottomY = 800;
+      const bottomY = 780;
       doc.fontSize(7).fillColor(C_GRAY).text('CashTrace System © ' + new Date().getFullYear(), 50, bottomY);
-      doc.text('Halaman 1', 500, bottomY, { align: 'right' });
 
       doc.end();
     } else {

@@ -11,7 +11,7 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://192.168.68.106:3000', 'http://192.168.1.9:3000', 'http://192.168.1.8:3000', '*'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://ajekkk.my.id:3000', 'https://cashtrace.ajekkk.my.id'],
   credentials: true
 }));
 app.use(morgan('dev'));
